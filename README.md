@@ -78,10 +78,9 @@ By default, the `scale` is 0.5, so if you wish to obtain better results (but use
 
 The input images and target masks should be in the `data/imgs` and `data/masks` folders respectively.
 
-## Tensorboard
-You can visualize in real time the train and test losses, along with the model predictions with tensorboard:
 
-`tensorboard --logdir=runs`
+## Dependencies
+This package depends on [pydensecrf](https://github.com/lucasb-eyer/pydensecrf), available via `pip install`.
 
 ## Notes on memory
 
