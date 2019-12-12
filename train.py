@@ -16,9 +16,9 @@ from torch.utils.tensorboard import SummaryWriter
 from utils.dataset import BasicDataset
 from torch.utils.data import DataLoader, random_split
 
-dir_img = 'data/imgs/'
-dir_mask = 'data/masks/'
-dir_checkpoint = 'checkpoints/'
+dir_img = '/mnt/share/quantitative_analysis_database/VOC_her2/membrane_segmentation/imgs/'
+dir_mask = '/mnt/share/quantitative_analysis_database/VOC_her2/membrane_segmentation/masks/'
+dir_checkpoint = '/mnt/share/quantitative_analysis_database/VOC_her2/membrane_segmentation/checkpoints/'
 
 
 def train_net(net,
@@ -31,9 +31,15 @@ def train_net(net,
               img_scale=0.5):
 
     dataset = BasicDataset(dir_img, dir_mask, img_scale)
-    n_val = int(len(dataset) * val_percent)
-    n_train = len(dataset) - n_val
-    train, val = random_split(dataset, [n_train, n_val])
+    if val_percent >0:
+        n_val = int(len(dataset) * val_percent)
+        n_train = len(dataset) - n_val
+        train, val = random_split(dataset, [n_train, n_val])
+    else:
+        n_val = len(dataset)
+        n_train = len(dataset)
+        train = dataset
+        val = dataset
     train_loader = DataLoader(train, batch_size=batch_size, shuffle=True, num_workers=8, pin_memory=True)
     val_loader = DataLoader(val, batch_size=batch_size, shuffle=False, num_workers=8, pin_memory=True)
 
@@ -91,7 +97,7 @@ def train_net(net,
 
                 pbar.update(imgs.shape[0])
                 global_step += 1
-                if global_step % (len(dataset) // (10 * batch_size)) == 0:
+                if global_step % (len(dataset) ) == 0:
                     val_score = eval_net(net, val_loader, device, n_val)
                     if net.n_classes > 1:
                         logging.info('Validation cross entropy: {}'.format(val_score))
@@ -150,7 +156,7 @@ if __name__ == '__main__':
     #   - For 1 class and background, use n_classes=1
     #   - For 2 classes, use n_classes=1
     #   - For N > 2 classes, use n_classes=N
-    net = UNet(n_channels=3, n_classes=1)
+    net = UNet(n_channels=3, n_classes=1,bilinear = False)
     logging.info(f'Network:\n'
                  f'\t{net.n_channels} input channels\n'
                  f'\t{net.n_classes} output channels (classes)\n'

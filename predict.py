@@ -33,7 +33,7 @@ def predict_img(net,
 
     with torch.no_grad():
         output = net(X)
-        print(f"output shape : {output.shape}")
+        print(f"output shape : {output.shape[2:]}")
 
         if net.n_classes > 1:
             probs = F.softmax(output, dim=1)
@@ -44,8 +44,14 @@ def predict_img(net,
             # np.save("./output.jpg",np.array(probs))
 
         else:
+            argmax_result = np.zeros(output.shape)
             probs = torch.sigmoid(output)
-
+            probs = probs.cpu()
+            print(f"argmax_result.shape:{argmax_result.shape}")
+            print(f"probs.shape:{probs.shape}")
+            argmax_result[np.where(probs>out_threshold)]=1
+            argmax_result = argmax_result.reshape(output.shape[2:])
+              
         evaluate_image = evaluate_img(argmax_result)
     return evaluate_image, argmax_result, probs
 
@@ -136,7 +142,7 @@ if __name__ == "__main__":
     print(in_files)
     print(out_files)
 
-    net = UNet(n_channels=3, n_classes=6, bilinear=False)
+    net = UNet(n_channels=3, n_classes=1,bilinear = False)
 
     logging.info("Loading model {}".format(args.model))
 
