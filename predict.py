@@ -11,7 +11,7 @@ import torch.nn.functional as F
 
 from unet import UNet
 from utils import plot_img_and_mask
-from utils import resize_and_crop, normalize, hwc_to_chw, dense_crf
+from utils import resize_and_crop, normalize, hwc_to_chw # dense_crf
 
 
 def predict_img(net,
@@ -21,6 +21,7 @@ def predict_img(net,
                 out_threshold=0.5,
                 use_dense_crf=False):
     net.eval()
+    img_width = full_img.size[1]
     img_height = full_img.size[1]
 
     img = resize_and_crop(full_img, scale=scale_factor)
@@ -33,20 +34,27 @@ def predict_img(net,
 
     with torch.no_grad():
         output = net(X)
-        print(f"output shape : {output.shape}")
+        print(f"output shape : {output.shape[2:]}")
 
         if net.n_classes > 1:
             probs = F.softmax(output, dim=1)
             probs = probs.cpu()
             argmax_result = np.argmax(probs, axis=1).reshape(1024, 1024)
-            print(argmax_result.shape)
+            # print(argmax_result.shape)
             # print(f"probs shape : {probs.shape}")
             # np.save("./output.jpg",np.array(probs))
 
         else:
+            argmax_result = np.zeros(output.shape)
             probs = torch.sigmoid(output)
+            probs = probs.cpu()
+            # print(f"argmax_result.shape:{argmax_result.shape}")
+            # print(f"probs.shape:{probs.shape}")
+            argmax_result[np.where(probs>out_threshold)]=1
+            argmax_result = argmax_result.reshape(output.shape[2:])
+              
 
-        evaluate_image = evaluate_img(argmax_result)
+        evaluate_image = evaluate_img(argmax_result,img_width,img_height)
     return evaluate_image, argmax_result, probs
 
     #     evaluate_image = evaluate_img(max_result)
@@ -122,8 +130,8 @@ def mask_to_image(mask):
 color_dic = {1: [255, 255, 255], 2: [255, 255, 0], 3: [255, 0, 255], 4: [0, 255, 255], 5: [255, 0, 0]}
 
 
-def evaluate_img(total_mask):
-    mask = np.zeros((1024, 1024, 3), dtype=np.uint8)
+def evaluate_img(total_mask,width,height):
+    mask = np.zeros((width, height, 3), dtype=np.uint8)
     for i in color_dic:
         mask[np.where(total_mask == i)] = np.array(color_dic[i])
     return mask
@@ -133,9 +141,7 @@ if __name__ == "__main__":
     args = get_args()
     in_files = args.input
     out_files = args.output
-    print(in_files)
-    print(out_files)
-
+    
     net = UNet(n_channels=3, n_classes=6, bilinear=False)
 
     logging.info("Loading model {}".format(args.model))
