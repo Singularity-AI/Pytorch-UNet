@@ -34,7 +34,7 @@ def predict_img(net,
 
     with torch.no_grad():
         output = net(X)
-        print(f"output shape : {output.shape[2:]}")
+        
 
         if net.n_classes > 1:
             probs = F.softmax(output, dim=1)
